@@ -63,6 +63,10 @@ async function main() {
     };
   });
 
+  app.get("/movies", async (req,res) =>{
+
+  });
+
 
 }
 main();
