@@ -2,9 +2,11 @@
 const { MongoClient } = require('mongodb');
 const fs = require('fs');
 require('dotenv').config();
+const { ObjectId } = require("mongodb");
 
 // MongoDB connection URI from .env file
 const mongoUri = process.env.MONGO_URI;
+console.log("mongoUri" , mongoUri);
 const dbName = "cinemadb";
 
 async function importData() {
@@ -18,17 +20,17 @@ async function importData() {
     console.log(`Connected to database: ${dbName}`);
 
     // Read JSON files
-    const genres = JSON.parse(fs.readFileSync('./sample_data/genres.json', 'utf8'));
-    const categories = JSON.parse(fs.readFileSync('./sample_data/categories.json', 'utf8'));
-    const users = JSON.parse(fs.readFileSync('./sample_data/users.json', 'utf8'));
-    const movies = JSON.parse(fs.readFileSync('./sample_data/movies.json', 'utf8'));
+    const genres = JSON.parse(fs.readFileSync('./sample_data/genres-collection.json', 'utf8'));
+    const categories = JSON.parse(fs.readFileSync('./sample_data/categories-collection.json', 'utf8'));
+    const users = JSON.parse(fs.readFileSync('./sample_data/users-collection.json', 'utf8'));
+    const movies = JSON.parse(fs.readFileSync('./sample_data/movies-collection.json', 'utf8'));
 
     // Convert string ObjectIds to MongoDB ObjectIds
     function prepareDocuments(documents) {
       return documents.map(doc => {
         // Convert root _id
         if (doc._id && doc._id.$oid) {
-          doc._id = new require('mongodb').ObjectId(doc._id.$oid);
+          doc._id = new ObjectId(doc._id.$oid);
         }
         
         // Handle dates
@@ -40,13 +42,13 @@ async function importData() {
 
         // Handle nested documents (for movies collection)
         if (doc.genre && doc.genre._id && doc.genre._id.$oid) {
-          doc.genre._id = new require('mongodb').ObjectId(doc.genre._id.$oid);
+          doc.genre._id = new ObjectId(doc.genre._id.$oid);
         }
         
         if (doc.categories) {
           doc.categories = doc.categories.map(category => {
             if (category._id && category._id.$oid) {
-              category._id = new require('mongodb').ObjectId(category._id.$oid);
+              category._id = new ObjectId(category._id.$oid);
             }
             return category;
           });
