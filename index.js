@@ -23,17 +23,43 @@ async function main() {
   //get all movies
   app.get("/movies", async (req, res) => {
     try {
+      const { title, genre, releaseYear, rating, cast, categories } = req.query;
+      let filter = {};
+
+      if (title) {
+        filter.title = { $regex: title, $options: 'i' };
+      }
+
+      if (genre) {
+        filter["genre.name"] = { $regex: genre, $options: 'i' };
+      }
+
+      if (releaseYear) {
+        filter.releaseYear = parseInt(releaseYear);
+      }
+
+      if(rating){
+        filter.rating = {$gte: parseFloat(rating)};
+      }
+
+      if(cast){
+        filter["cast.name"] = {$regex : cast, $options: ''};
+      }
+
+      if(categories){
+        filter["categories.name"] = { $in: categories.split(',')};
+      }
+
       const movies = await db
         .collection("movies")
-        .find()
+        .find(filter)
         .project({
           title: 1,
           genre: 1,
-          duration: 1,
+          releaseYear: 1,
           rating: 1,
           cast: 1,
-          director: 1,
-          synopsis: 1,
+          categories: 1,
         })
         .toArray();
 
@@ -67,10 +93,6 @@ async function main() {
     }
   });
   
-  //Search Movies
-  app.get("/movies", async (req, res) => {
-
-  });
 }
 main();
 
