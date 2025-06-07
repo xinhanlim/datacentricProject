@@ -20,39 +20,39 @@ async function connect(uri, dbname) {
 async function main() {
   let db = await connect(mongoUri, dbname);
 
-  //get all movies
+  //get all movies & search function
   app.get("/movies", async (req, res) => {
     try {
-      const { title, genre, releaseYear, rating, cast, categories } = req.query;
-      let filter = {};
-
-      if (title) {
-        filter.title = { $regex: title, $options: 'i' };
-      }
-
-      if (genre) {
-        filter["genre.name"] = { $regex: genre, $options: 'i' };
-      }
-
-      if (releaseYear) {
-        filter.releaseYear = parseInt(releaseYear);
-      }
-
-      if(rating){
-        filter.rating = {$gte: parseFloat(rating)};
-      }
-
-      if(cast){
-        filter["cast.name"] = {$regex : cast, $options: ''};
-      }
-
-      if(categories){
-        filter["categories.name"] = { $in: categories.split(',')};
-      }
-
+        // const { title, genre, releaseYear, rating, cast, categories } = req.query;
+        // let filter = {};
+  
+        // if (title) {
+        //   filter.title = { $regex: title, $options: 'i' };
+        // }
+  
+        // if (genre) {
+        //   filter["genre.name"] = { $regex: genre, $options: 'i' };
+        // }
+  
+        // if (releaseYear) {
+        //   filter.releaseYear = parseInt(releaseYear);
+        // }
+  
+        // if(rating){
+        //   filter.rating = {$gte: parseFloat(rating)};
+        // }
+  
+        // if(cast){
+        //   filter["cast.name"] = {$regex : cast, $options: ''};
+        // }
+  
+        // if(categories){
+        //   filter["categories.name"] = { $in: categories.split(',')};
+        // }
+        
       const movies = await db
         .collection("movies")
-        .find(filter)
+        .find()
         .project({
           title: 1,
           genre: 1,
@@ -68,6 +68,55 @@ async function main() {
       console.log("error fetching movies", error);
       res.status(401).json({ Error: "Error" });
     }
+  });
+
+  app.get("/movies/search", async (req,res) => {
+    try {
+        const { title, genre, releaseYear, rating, cast, categories } = req.query;
+        let filter = {};
+  
+        if (title) {
+          filter.title = { $regex: title, $options: 'i' };
+        }
+  
+        if (genre) {
+          filter["genre.name"] = { $regex: genre, $options: 'i' };
+        }
+  
+        if (releaseYear) {
+          filter.releaseYear = parseInt(releaseYear);
+        }
+  
+        if(rating){
+          filter.rating = {$gte: parseFloat(rating)};
+        }
+  
+        if(cast){
+          filter["cast.name"] = {$regex : cast, $options: ''};
+        }
+  
+        if(categories){
+          filter["categories.name"] = { $in: categories.split(',')};
+        }
+
+        const movies = await db
+        .collection("movies")
+        .find(filter)
+        .project({
+          title: 1,
+          genre: 1,
+          releaseYear: 1,
+          rating: 1,
+          cast: 1,
+          categories: 1,
+        })
+        .toArray();
+
+      res.json({ movies });
+      } catch (error) {
+        console.log("error fetching movies", error);
+        res.status(401).json({ Error: "Error" });
+      }
   });
 
   //findOne movie
@@ -91,6 +140,13 @@ async function main() {
       console.log("error fetching movies", error);
       res.status(401).json({ Error: "Error" });
     }
+  });
+
+ 
+
+  //Add movies
+  app.post("/movies", async (req,res) => {
+
   });
   
 }
