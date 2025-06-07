@@ -49,7 +49,7 @@ async function main() {
         // if(categories){
         //   filter["categories.name"] = { $in: categories.split(',')};
         // }
-        
+
       const movies = await db
         .collection("movies")
         .find()
@@ -142,12 +142,57 @@ async function main() {
     }
   });
 
- 
-
   //Add movies
-  app.post("/movies", async (req,res) => {
+    app.post("/movies", async function (req, res) {
+        try {
 
-  });
+            // title, genre, duration, releaseYear, rating, cast, reviews and categories
+            // when we use POST, PATCH or PUT to send data to the server, the data are in req.body
+            let { title, genre, duration, releaseYear, rating, cast, reviews, categories } = req.body;
+
+            // basic validation: make sure that title, genre, cast, reviews and categories
+            if (!title || !genre || !cast || !reviews || !categories) {
+                return res.status(400).json({
+                    "error": "Missing fields required"
+                })
+            }
+
+            // find the _id of the related genre and add it to the new movie
+            let genreDoc = await db.collection('genres').findOne({
+                "name": genre
+            })
+
+            if (!genreDoc) {
+                return res.status(400).json({ "error": "Invalid genre" })
+            }
+
+            // find all the categories that the client want to attach to the movie document
+            const categoryDocuments = await db.collection('categories').find({
+                'name': {
+                    '$in': categories
+                }
+            }).toArray();
+
+            // TODO: create a new movie document
+            let newMovieDocument = {
+               
+            }
+
+            //TODO: insert the new movie document into the collection
+            let result = null;
+
+            res.status(201).json({
+                'message': 'New movie has been created',
+                'movieId': result.insertedId // insertedId is the _id of the new document
+            })
+
+
+        } catch (e) {
+            console.error(e);
+            res.status(500);
+        }
+    })
+
   
 }
 main();
