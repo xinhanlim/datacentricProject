@@ -192,6 +192,60 @@ async function main() {
     }
 });
 
+//update movies
+    app.put("/movies/:id", async (req,res) => {
+        try{
+
+            const movieId = req.params.id;
+            let {title, genre, duration, releaseYear, rating, cast, reviews, categories} = req.body;
+            // title, genre, releaseYear, rating, cast, categories
+            if(!title || !genre || !releaseYear || !rating || !cast || !categories){
+                return res.status(400).json({
+                    error: "Missing Fields"
+                })
+            }
+    
+            const genreDoc = await db.collection("movies").findOne({ "genre.name":genre });
+            // console.log(genreDoc);
+            if (!genreDoc) {
+                return res.status(400).json({ error : "Invalid genre"});
+            }
+            const categoriesDoc = await db.collection("categories").find({ name :{$in: categories}}).toArray();
+            if (!categoriesDoc){
+                return res.status(400).json({error: "Invalid catogories"});
+            }
+    
+            let newUpdatedMovie = {
+                title, 
+                genre:{
+                    _id:genreDoc.id,
+                    name: genreDoc.description
+                },
+                duration,
+                releaseYear,
+                rating,
+                cast,
+                reviews,
+                categories: categoriesDoc.map(categories => ({
+                    _id: categories._id,
+                    name: categories.name
+                })),
+            }
+    
+            const addedResult = await db.collection("movies").updateOne(
+                {_id: new ObjectId (movieId) },
+                {$set: newUpdatedMovie}
+            );
+            if(addedResult.matchCount === 0){
+                return res.status(404).json({ error: "Movies Not Found"});
+            }
+
+            res.status(200).json({ message: "Movies Updated" })
+    
+            } catch (error) {
+            res.status(401);
+        }
+    })
 }
 main();
 
