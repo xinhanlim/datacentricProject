@@ -246,6 +246,20 @@ async function main() {
             res.status(401);
         }
     })
+
+// delete Movies
+    app.delete("/movies/:id", async (req,res) =>{
+        const movieId = req.params.id;
+        const deleteMovie = await db.collection("movies").deleteOne(
+            {_id: new ObjectId (movieId)}
+        );
+        if(deleteMovie.deletedCount === 0){
+            return res.status(404).json({ error: "Movies not found"});
+        }
+        res.status(200).json(
+            {message: "Movie Deleted"}
+        );
+    });
 }
 main();
 
