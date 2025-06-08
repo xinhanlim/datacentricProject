@@ -4,6 +4,38 @@ require("dotenv").config();
 const MongoClient = require("mongodb").MongoClient;
 const dbname = "cinemadb";
 const { ObjectId } = require("mongodb");
+const bcrypt = require("bcrypt");
+const crypto = require("crypto");
+const secret = crypto.randomBytes(64).toString('hex');
+const jwt = require("jsonwebtoken");
+
+const generateAccessToken = (id, email) => {
+    return jwt.sign(
+        {
+            'email' : id,
+            'password': email
+        }, process.env.TOKEN_SECRET, { 
+            expiresIn: "1h"
+        }
+    )
+}
+
+const verifyToken = (req,res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(" ")[1];
+    if(!token) {
+        return res.sendStatus(403);
+    }
+    jwt.verify(token, process.env.TOKEN_SECRET, (err, user) => {
+        if (err){
+            return res.sendStatus(403);
+        }
+        req.user = user;
+        next();
+
+        res.json({ "message" : "You Have Successfully Login"})
+    })
+}
 
 const mongoUri = process.env.MONGO_URI;
 
@@ -19,6 +51,7 @@ async function connect(uri, dbname) {
 
 async function main() {
   let db = await connect(mongoUri, dbname);
+
 
   //get all movies & search function
   app.get("/movies", async (req, res) => {
@@ -142,7 +175,6 @@ async function main() {
     }
   });
 
-
   //Add movies
   app.post("/movies", async (req,res) => {
     try{
@@ -260,6 +292,58 @@ async function main() {
             {message: "Movie Deleted"}
         );
     });
+
+//bcrypt
+    app.post("/user" , async (req,res) => {
+        const hashed = await db.collection("users").insertOne(
+            {"email" : req.body.email,
+            "password" : await bcrypt.hash(req.body.password, 12)
+            }
+        )
+        res.json(
+            {"message" : "New User Account",
+            "result" : hashed
+            }
+        )
+    })
+
+//login w middleware
+app.post("/login", verifyToken, async (req,res) => {
+    const { email, password } = req.body;
+    if(!email || !password) { 
+        return res.status(404).json(
+            { "messsage" : "Missing required fields"}
+        )
+    };
+
+    const userDoc = await db.collection("users").findOne(
+        {
+            "email" : email,
+        }
+    );
+    // console.log(userDoc)
+    if(!userDoc){
+        return res.status(404).json({ "message" : "User Not Found"})
+    }
+
+    const passwordValid  = await bcrypt.compare(password, userDoc.password);
+    // console.log(password);
+    // console.log(userDoc.password);
+    // console.log(passwordValid);
+    if(!passwordValid) {
+        return res.status(401).json({ error : "Invalid Password"})
+    }
+
+    const accessToken = generateAccessToken(userDoc._id, userDoc.email)
+    // res.json({ accessToken: accessToken})
+
+})
+
+// //middleware
+// app.get('profile', verifyToken, (req,res) =>{
+//     res.json({ "message" : "This is a protected route", user: req.user})
+// })
+
 }
 main();
 
