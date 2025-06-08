@@ -49,7 +49,7 @@ async function main() {
         // if(categories){
         //   filter["categories.name"] = { $in: categories.split(',')};
         // }
-
+        
       const movies = await db
         .collection("movies")
         .find()
@@ -142,58 +142,56 @@ async function main() {
     }
   });
 
+
   //Add movies
-    app.post("/movies", async function (req, res) {
-        try {
-
-            // title, genre, duration, releaseYear, rating, cast, reviews and categories
-            // when we use POST, PATCH or PUT to send data to the server, the data are in req.body
-            let { title, genre, duration, releaseYear, rating, cast, reviews, categories } = req.body;
-
-            // basic validation: make sure that title, genre, cast, reviews and categories
-            if (!title || !genre || !cast || !reviews || !categories) {
-                return res.status(400).json({
-                    "error": "Missing fields required"
-                })
-            }
-
-            // find the _id of the related genre and add it to the new movie
-            let genreDoc = await db.collection('genres').findOne({
-                "name": genre
+  app.post("/movies", async (req,res) => {
+    try{
+        let {title, genre, duration, releaseYear, rating, cast, reviews, categories} = req.body;
+        // title, genre, releaseYear, rating, cast, categories
+        if(!title || !genre || !releaseYear || !rating || !cast || !categories){
+            return res.status(400).json({
+                error: "Missing Fields"
             })
-
-            if (!genreDoc) {
-                return res.status(400).json({ "error": "Invalid genre" })
-            }
-
-            // find all the categories that the client want to attach to the movie document
-            const categoryDocuments = await db.collection('categories').find({
-                'name': {
-                    '$in': categories
-                }
-            }).toArray();
-
-            // TODO: create a new movie document
-            let newMovieDocument = {
-               
-            }
-
-            //TODO: insert the new movie document into the collection
-            let result = null;
-
-            res.status(201).json({
-                'message': 'New movie has been created',
-                'movieId': result.insertedId // insertedId is the _id of the new document
-            })
-
-
-        } catch (e) {
-            console.error(e);
-            res.status(500);
         }
-    })
 
-  
+        const genreDoc = await db.collection("movies").findOne({ "genre.name":genre });
+        // console.log(genreDoc);
+        if (!genreDoc) {
+            return res.status(400).json({ error : "Invalid genre"});
+        }
+        const categoriesDoc = await db.collection("categories").find({ name :{$in: categories}}).toArray();
+        if (!categoriesDoc){
+            return res.status(400).json({error: "Invalid catogories"});
+        }
+
+        let newAddedMovie = {
+            title, 
+            genre:{
+                _id:genreDoc.id,
+                name: genreDoc.description
+            },
+            duration,
+            releaseYear,
+            rating,
+            cast,
+            reviews,
+            categories: categoriesDoc.map(categories => ({
+                _id: categories._id,
+                name: categories.name
+            })),
+        }
+
+        const addedResult = await db.collection("movies").insertOne(newAddedMovie);
+        res.status(201).json({
+            "message" : "Movies Added",
+            id: addedResult.insertedId
+        })
+
+        } catch (error) {
+        res.status(401);
+    }
+});
+
 }
 main();
 
